@@ -3,14 +3,32 @@ SPDX-License-Identifier: CC-BY-4.0
 (c) Desenvolvido por Jeff Prestes
 This work is licensed under a Creative Commons Attribution 4.0 International License.
 */
+/*
+* "Commitar" fonte do contrato de aluguel no seu repositorio de fontes no Github com o nome de nuclea-aula05.sol
+* Fazer deploy do contrato de aluguel na rede de teste Sepolia
+* Realizar 2 pagamentos de aluguel
+* Reajustar o aluguel em 7%
+* Fazer dois pagamentos com o aluguel reajustado
+* Voltar no fonte do contrato no seu repositório e adicionar um comentário com o endereço dele, exemplo: 
+
+// Endereço do contrato na rede Sepolia 0x3226D8A32D771dc1e29f3E8706d6d9289a80Fc78
+*/
 pragma solidity 0.8.19;
 
 contract Aluguel {
+    
+    struct DadosPagamento {
+        uint quandoFoiPago;
+        uint valorPago;
+    }
+    
     string public locatario;
     string public locador;
     uint256 private valor;
     uint256 constant public numeroMaximoLegalDeAlugueisParaMulta = 3;
-    bool[] public statusPagamento;
+    DadosPagamento[] public statusPagamento;
+
+
     /*
     0 - 01/2020 = true
     1 - 02/2020 = true
@@ -43,8 +61,8 @@ contract Aluguel {
         return valorMulta;
     } 
         
-    function reajustaAluguel(uint256 percentualReajuste) public 
-    {
+    function reajustaAluguel(uint256 percentualReajuste) public {
+        require(msg.sender == owner, "somente o dono do imovel pode reajustar o aluguel");
         if (percentualReajuste > 20) {
             percentualReajuste = 20;
         }
@@ -65,10 +83,11 @@ contract Aluguel {
     }
     
     
-    function receberPagamento() public payable {
+    function receberPagamento() public payable {        
         require(msg.value>=valor, "Valor insuficiente");
         contaLocador.transfer(msg.value);
-        statusPagamento.push(true);
+        DadosPagamento memory dPgto = DadosPagamento(block.timestamp, msg.value);
+        statusPagamento.push(dPgto);
     }
     
     //msg.value = valor em wei enviado ao contrato
@@ -83,5 +102,13 @@ contract Aluguel {
     
     function quantosPagamentosJaForamFeitos() public view returns (uint256) {
         return statusPagamento.length;
+    }
+
+    function historicoDePagto() public view returns (uint valorTotalRecebido, uint numAluguelRecebido) {
+        for (uint256 i; i < statusPagamento.length; i++) {
+            valorTotalRecebido += statusPagamento[i].valorPago;
+            numAluguelRecebido++;
+        }
+        return (valorTotalRecebido, numAluguelRecebido);
     }
 }
